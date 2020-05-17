@@ -1,2 +1,5 @@
-# funcubeGo
-go apps that decode the FUNcube series of satellites (using funcubeLib), and send decode to the data warehouse.
+# go-io
+re-usable io utilities:
+- TimedConn which wraps a connection to give a connection with read/write timeouts
+- ReadSeekCloser wraps a ReadCloser to provide seeking if availabile on the underlying reader
+
