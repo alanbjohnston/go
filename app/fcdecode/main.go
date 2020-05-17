@@ -3,7 +3,7 @@ package main
 import (
     "C"
     "fmt"
-    alib "funcube.org.uk/internal/audiolibwrap"
+    "github.com/funcube-dev/go/fclib"
     "io"
     "log"
     "net"
@@ -36,7 +36,7 @@ func OnDataReady() {
     var decodedErrors int
     decodedSize = 256
     decoded := make([]byte, decodedSize)
-    alib.Decode_CollectLastData(&decoded[0], &decodedSize, &decodedFreq, &decodedErrors)
+    fclib.Decode_CollectLastData(&decoded[0], &decodedSize, &decodedFreq, &decodedErrors)
 
     fmt.Printf("Decoded Frequency: %.2fHz  Error Count: %d  data: % x", decodedFreq, decodedErrors, decoded)
     dataChan <- decoded
@@ -47,11 +47,11 @@ func OnDataReady() {
 func main() {
     log.Printf("Using Config:\n%s\n", config.Sprint())
         
-	ver := alib.Library_GetVersion()
+	ver := fclib.Library_GetVersion()
     log.Printf("Got audioLib version %d\n", ver)
     time.Sleep(time.Millisecond*50)
         
-    if alib.Dongle_Initialize() != 1 || alib.Dongle_Exists() != 1 {
+    if fclib.Dongle_Initialize() != 1 || fclib.Dongle_Exists() != 1 {
         log.Fatalf("Failed to initialise FUNcube Dongle\n" +
                    "* Check the Dongle is plugged in, maybe try a powered usb hub?\n" +
                    "* Also ensure the docker container is starting with the --privileged flag, as device access is required")
@@ -59,18 +59,18 @@ func main() {
     time.Sleep(time.Millisecond*50)
     log.Printf("Found and Initialised FUNcube Dongle.")
     
-    if result := alib.Decode_Initialize(); result != 1 {
+    if result := fclib.Decode_Initialize(); result != 1 {
         log.Fatalf("Failed to initialise Decode workers, result:%d", result)
     }    
     time.Sleep(time.Millisecond*50)
     log.Printf("Initialised Decode workers.")
 
-    alib.Callback_SetOnDecodeReady(OnDataReady)
+    fclib.Callback_SetOnDecodeReady(OnDataReady)
     time.Sleep(time.Millisecond*50)
     log.Printf("Set decode callback function. ")
 
     freq := uint32(config.Float64("frequency"))
-    if result := alib.Dongle_SetFrequency(freq); result != 1 {
+    if result := fclib.Dongle_SetFrequency(freq); result != 1 {
         log.Fatalf("Failed to set FUNcube Dongle frequency:%dHz, result:%d", freq, result)
     }
     time.Sleep(time.Millisecond*50)
@@ -78,10 +78,10 @@ func main() {
 
     enablebiasT := config.Bool("biast")
     if enablebiasT {
-        alib.Dongle_BiasTEnable(1)
+        fclib.Dongle_BiasTEnable(1)
         log.Print("Set FUNcube Dongle 5V Bias-T ON")
     } else {
-        alib.Dongle_BiasTEnable(0)
+        fclib.Dongle_BiasTEnable(0)
         log.Print("Set FUNcube Dongle 5V Bias-T OFF")
     }
         
@@ -96,16 +96,16 @@ func main() {
     log.Println("*** Starting decode workers (may produce a few ALSA errors, just ignore!) ***")
     if nil != errIn || nil != errOut {
         // crashes everytime, needs some debugging...
-        //alib.Decode_Start(audioIn,audioOut,1,1)
+        //fclib.Decode_Start(audioIn,audioOut,1,1)
         log.Fatalf("Sorry device names is an unimplemented feature, please use numeric device id's, or -1 for the defaults")
     }
 
     workers := uint32(config.Int("numdecoders"))
-    if result := alib.Decode_SetWorkerCount(workers); result != 1 {
+    if result := fclib.Decode_SetWorkerCount(workers); result != 1 {
         log.Fatalf("Failed to set number of decode workers, requested: %d workers, result:%d", workers, result)
     }
 
-    if result := alib.Decode_StartByIndex(idAudioIn,idAudioOut,1,1); result != 1 {
+    if result := fclib.Decode_StartByIndex(idAudioIn,idAudioOut,1,1); result != 1 {
         log.Fatalf("*** Failed start decode workers, result:%d ***", result)
     }
     

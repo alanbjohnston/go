@@ -4,8 +4,8 @@ import (
     "C"
     "container/list"
     "fmt"
-    fc "funcube.org.uk/internal"
-    alib "funcube.org.uk/internal/audiolibwrap"
+    "github.com/funcube-dev/go/fclib"
+    "github.com/funcube-dev/go/fcio"
     "io"
     "log"
     "net"
@@ -29,7 +29,7 @@ var bpskChan = make(chan []byte, 64)
 func main() {
     log.Printf("Using Config:\n%s\n", config.Sprint())
 
-	devices := alib.Library_GetVersion()
+	devices := fclib.Library_GetVersion()
     log.Printf("Lib version %d\n", devices)
     
     fileName := config.String("file")
@@ -38,7 +38,7 @@ func main() {
 	    if err != nil {
             log.Fatalf("Failed to open file %s error:%v", fileName, err)
         }
-        reader, err := fc.NewReadSeekCloser(fcbinfile)
+        reader, err := fcio.NewReadSeekCloser(fcbinfile)
         if err != nil {
             log.Fatalf("Failed to get reader from file %s error:%v", fileName, err)
         }
@@ -63,7 +63,7 @@ func readData() {
             fmt.Printf(".")
             continue
         }
-        src := readerQueue.Front().Value.(*fc.ReadSeekCloser)
+        src := readerQueue.Front().Value.(*fcio.ReadSeekCloser)
                 
         raw := make([]byte, 256)
         bytesRead, err := src.Read(raw)
@@ -95,7 +95,7 @@ func readData() {
 }
 
 func encodeData() {
-    init := alib.Encode_Initialize()
+    init := fclib.Encode_Initialize()
     log.Printf("Initialised %d\n", init)
     
     var raw []byte
@@ -115,16 +115,16 @@ func encodeData() {
             continue
         }
 
-        alib.Encode_PushData(&raw[0], 256)
+        fclib.Encode_PushData(&raw[0], 256)
         
         var bpskSize uint32
-        for alib.Encode_AllDataCollected() == 0 {                        
+        for fclib.Encode_AllDataCollected() == 0 {
             bpskSize = 0
-            if alib.Encode_CanCollect() > 0 {
+            if fclib.Encode_CanCollect() > 0 {
                 bpskSize = 1280 // (40*8*4)
                 bpskBuffer := make([]byte, bpskSize)
                 
-                alib.Encode_CollectSamples(&bpskBuffer[0], &bpskSize)
+                fclib.Encode_CollectSamples(&bpskBuffer[0], &bpskSize)
                 // dont send zero length buffers (shouldn't ever happen)
                 if bpskSize==0 {
                     fmt.Printf("0")
@@ -259,12 +259,12 @@ func commandListen() {
 func handleConnection(c net.Conn) {
     log.Printf("Connection from: %v", c)
 
-    tc, err := fc.NewTimedConn(c, time.Second)
+    tc, err := fcio.NewTimedConn(c, time.Second)
     if err != nil {
         log.Printf("Failed to create TimedConn, ignoring error:%v", err)
         return
     }
-    reader, err := fc.NewReadSeekCloser(tc)
+    reader, err := fcio.NewReadSeekCloser(tc)
     if err != nil {
         log.Printf("Failed to create reader, ignoring error:%v", err)
         return

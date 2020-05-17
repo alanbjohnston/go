@@ -18,7 +18,7 @@ import (
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/providers/posflag"
-	"github.com/myriadrf/limedrv"
+	"github.com/funcube-dev/limedrv"
 	flag "github.com/spf13/pflag"
 )
 

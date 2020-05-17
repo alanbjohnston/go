@@ -3,7 +3,7 @@ package main
 import (
     "container/list"
     "fmt"
-    fc "funcube.org.uk/internal"
+    "github.com/funcube-dev/go/fcio"
     "io"
     "log"
     "net"
@@ -33,7 +33,7 @@ func main() {
 	    if err != nil {
             log.Fatalf("Failed to open file %s error:%v", fileName, err)
         }
-        reader, err := fc.NewReadSeekCloser(fcbinfile)
+        reader, err := fcio.NewReadSeekCloser(fcbinfile)
         if err != nil {
             log.Fatalf("Failed to get reader from file %s error:%v", fileName, err)
         }
@@ -56,7 +56,7 @@ func readData() {
             fmt.Printf(".")
             continue
         }
-        src := readerQueue.Front().Value.(*fc.ReadSeekCloser)
+        src := readerQueue.Front().Value.(*fcio.ReadSeekCloser)
                 
         raw := make([]byte, 256)
         bytesRead, err := src.Read(raw)
@@ -186,12 +186,12 @@ func commandListen() {
 func handleConnection(c net.Conn) {
     log.Printf("Connection from: %v", c)
 
-    tc, err := fc.NewTimedConn(c, time.Second)
+    tc, err := fcio.NewTimedConn(c, time.Second)
     if err != nil {
         log.Printf("Failed to create TimedConn, ignoring error:%v", err)
         return
     }
-    reader, err := fc.NewReadSeekCloser(tc)
+    reader, err := fcio.NewReadSeekCloser(tc)
     if err != nil {
         log.Printf("Failed to create reader, ignoring error:%v", err)
         return
