@@ -1,6 +1,6 @@
 package limedrv
 
-import "github.com/myriadrf/limedrv/limewrap"
+import "github.com/funcube-dev/limedrv/limewrap"
 
 // Preset of channel IDs by name. To be used in channel calls.
 const (

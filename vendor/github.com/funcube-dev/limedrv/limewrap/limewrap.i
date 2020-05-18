@@ -12,4 +12,4 @@
 #define _DOXYGEN_ONLY_
 %include "stdint.i"
 
-%include "/usr/include/lime/LimeSuite.h"
+%include "/usr/local/include/lime/LimeSuite.h"

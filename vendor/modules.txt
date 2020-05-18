@@ -4,8 +4,9 @@ github.com/brian-armstrong/gpio
 github.com/davecgh/go-spew/spew
 # github.com/fsnotify/fsnotify v1.4.9
 github.com/fsnotify/fsnotify
-# github.com/funcube-dev/limedrv v0.0.0-20200517193551-22f9ca6b6012
+# github.com/funcube-dev/limedrv v0.0.0-20200518223445-e841d89cc45e
 github.com/funcube-dev/limedrv
+github.com/funcube-dev/limedrv/limewrap
 # github.com/gin-contrib/sse v0.1.0
 github.com/gin-contrib/sse
 # github.com/gin-gonic/gin v1.6.3
@@ -27,11 +28,11 @@ github.com/golang/protobuf/proto
 github.com/json-iterator/go
 # github.com/knadh/koanf v0.10.0
 github.com/knadh/koanf
-github.com/knadh/koanf/maps
 github.com/knadh/koanf/parsers/toml
 github.com/knadh/koanf/providers/env
 github.com/knadh/koanf/providers/file
 github.com/knadh/koanf/providers/posflag
+github.com/knadh/koanf/maps
 # github.com/leodido/go-urn v1.2.0
 github.com/leodido/go-urn
 # github.com/mattn/go-isatty v0.0.12
@@ -42,8 +43,6 @@ github.com/mitchellh/mapstructure
 github.com/modern-go/concurrent
 # github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742
 github.com/modern-go/reflect2
-# github.com/myriadrf/limedrv v0.0.0-20190225221912-8583a26e3fce
-github.com/myriadrf/limedrv/limewrap
 # github.com/pelletier/go-toml v1.7.0
 github.com/pelletier/go-toml
 # github.com/pmezard/go-difflib v1.0.0

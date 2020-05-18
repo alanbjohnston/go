@@ -1,7 +1,6 @@
-[![Build Status](https://api.travis-ci.org/racerxdl/limedrv.svg?branch=master)](https://travis-ci.org/racerxdl/limedrv) [![Apache License](https://img.shields.io/badge/license-Apache-blue.svg)](https://tldrlegal.com/license/apache-license-2.0-(apache-2.0)) [![Go Report](https://goreportcard.com/badge/github.com/myriadrf/limedrv)](https://goreportcard.com/report/github.com/myriadrf/limedrv)
-
-# limedrv
+# limedrv - Fork
 LimeSuite Wrapper on Go (Driver for LimeSDR Devices)
+Forked to add ability to transmit smaller buffers than just the fifo size
 
 # Usage
 
