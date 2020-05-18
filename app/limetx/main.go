@@ -13,12 +13,12 @@ import (
 	"time"
 
 	"github.com/brian-armstrong/gpio"
+	"github.com/funcube-dev/limedrv"
 	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/parsers/toml"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/providers/posflag"
-	"github.com/funcube-dev/limedrv"
 	flag "github.com/spf13/pflag"
 )
 
@@ -285,7 +285,7 @@ func fillTransmitChannel() {
 	}
 }
 
-func realSampleCallback(data []complex64, channel int) int64 {
+func realSampleCallback(data []complex64, channel int) int {
 	var samples []float32
 	sampleCount := 0
 	select {
@@ -310,7 +310,8 @@ func realSampleCallback(data []complex64, channel int) int64 {
 	for i := 0; i < sampleCount; i++ {
 		data[i] = complex64(complex(samples[i], 0.0))
 	}
-	return int64(sampleCount)}
+	return sampleCount
+}
 
 func readConfiguration() *koanf.Koanf {
 	var konf = koanf.New(".")
