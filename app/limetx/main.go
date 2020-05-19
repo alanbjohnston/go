@@ -5,6 +5,7 @@ import (
 	"container/list"
 	"encoding/binary"
 	"fmt"
+	"github.com/funcube-dev/go/fcio"
 	"io"
 	"log"
 	"net"
@@ -21,40 +22,6 @@ import (
 	"github.com/knadh/koanf/providers/posflag"
 	flag "github.com/spf13/pflag"
 )
-
-type source struct {
-	io.Reader
-	io.Closer
-	reader io.ReadCloser
-	conn   *net.Conn
-	file   *os.File
-}
-
-func (s source) Read(p []byte) (int, error) {
-	if nil != s.conn {
-		(*s.conn).SetReadDeadline(time.Now().Add(time.Second))
-	}
-	n, err := s.reader.Read(p)
-	if nil != s.conn {
-		(*s.conn).SetReadDeadline(time.Time{})
-	}
-	return n, err
-}
-
-func (s source) Close() error {
-	if nil != s.conn {
-		return (*s.conn).Close()
-	}
-	if nil != s.file {
-		return (*s.file).Close()
-	}
-	return nil
-}
-
-func (s source) IsTimeout(err error) bool {
-	neterr, ok := err.(net.Error)
-	return ok && neterr.Timeout()
-}
 
 var config = readConfiguration()
 var readerQueue = list.New()
@@ -95,7 +62,11 @@ func main() {
 		if err != nil {
 			log.Fatalf("Failed to open file %s error:%v", fileName, err)
 		}
-		readerQueue.PushBack(source{reader: txfile, file: txfile})
+		reader, err := fcio.NewReadSeekCloser(txfile)
+		if err != nil {
+			log.Fatalf("Failed to get reader from file %s error:%v", fileName, err)
+		}
+		readerQueue.PushBack(reader)
 		transmitStart()
 	}
 
@@ -206,7 +177,18 @@ func transmitStop() {
 
 func handleConnection(c net.Conn) {
 	log.Printf("Connection from: %v", c)
-	readerQueue.PushBack(source{reader: c, conn: &c})
+
+	tc, err := fcio.NewTimedConn(c, time.Second)
+	if err != nil {
+		log.Printf("Failed to create TimedConn, ignoring error:%v", err)
+		return
+	}
+	reader, err := fcio.NewReadSeekCloser(tc)
+	if err != nil {
+		log.Printf("Failed to create reader, ignoring error:%v", err)
+		return
+	}
+	readerQueue.PushBack(reader)
 }
 
 func handleCommandConnection(c net.Conn) {
@@ -235,29 +217,21 @@ func fillTransmitChannel() {
 		}
 		idleSeconds = 0
 
-		src := readerQueue.Front().Value.(source)
+		src := readerQueue.Front().Value.(*fcio.ReadSeekCloser)
 
 		raw := make([]byte, 4096)
 		bytesRead, err := src.Read(raw)
-		if err == io.EOF || src.IsTimeout(err) {
-			if src.file != nil {
-				if !loopFile {
-					fmt.Printf("|")
-					lastRead := bytesRead
-					src.file.Seek(0, 0)
-					bytesRead, err = src.reader.Read(raw[lastRead:])
-					bytesRead += lastRead
-				} else {
-					fmt.Printf("^")
-					readerQueue.Remove(readerQueue.Front())
-					(*src.file).Close()
-					err = nil
-				}
-			}
-			if src.conn != nil {
+		if err == io.EOF {
+			if loopFile && src.CanSeek() {
+				fmt.Printf("|")
+				lastRead := bytesRead
+				src.Seek(0, 0)
+				bytesRead, err = src.Read(raw[lastRead:])
+				bytesRead += lastRead
+			} else {
 				fmt.Printf("^")
 				readerQueue.Remove(readerQueue.Front())
-				(*src.conn).Close()
+				src.Close()
 				err = nil
 			}
 		}
