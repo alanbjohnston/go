@@ -64,7 +64,12 @@ func ConfigSprintSafe() string {
 	for _, k := range config.Keys() {
 		v := config.Get(k)
 		if k == "authcode" {
-			v = "********"
+			ac, ok := v.(string)
+			if !ok || len(ac)<2 {
+				ac = "**"
+			}
+			// add last two characters of real authcode
+			v = "********" + ac[len(ac)-2:]
 		}
 		b.Write([]byte(fmt.Sprintf("%s -> %v\n", k, v)))
 	}
