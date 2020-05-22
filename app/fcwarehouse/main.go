@@ -28,6 +28,16 @@ var dataChan = make(chan []byte, 64)
 func main() {
 	log.Printf("Using Config:\n%s\n", ConfigSprintSafe())
 
+	ignore := config.Bool("ignorecheck")
+	if !warehouseCredentialsOk() {
+		if !ignore {
+			log.Fatalf("Failed, in the unlikely event that the data warehouse is down, adding --ignorecheck will skip this error, data submissions will retry")
+		}
+		log.Println("Failed but was ignored (--ignorecheck), if the warehouse is currently down, this will get you started and data submissions will retry, otherwise all data submissions WILL fail.")
+	} else {
+		log.Println("*** Warehouse Credentials (siteid/authcode) - OK ***")
+	}
+
 	fileName := config.String("file")
 	if len(fileName) > 0 {
 		fcbinfile, err := os.Open(fileName)
@@ -59,6 +69,39 @@ func ConfigSprintSafe() string {
 		b.Write([]byte(fmt.Sprintf("%s -> %v\n", k, v)))
 	}
 	return b.String()
+}
+
+func warehouseCredentialsOk() bool {
+	baseURL := config.String("url")
+	siteID := config.String("siteid")
+	authCode := config.String("authcode")
+
+	if siteID == "" || authCode == "" {
+		log.Printf("Warehouse Credentials check failed, missing authcode and site id, please see:\n\nhttp://warehouse.funcube.org.uk/registration\n\n")
+		return false
+	}
+
+	// dont use the NewFrame method as that checks for valid data sizes, we need a zero length data frame.
+	frame := &Frame{[]byte{}, 0}
+	digest, _ := frame.GetWarehouseDigest(authCode)
+
+	warehouseURL := baseURL + "api/data/hex/" + siteID + "/?digest=" + digest
+
+	resp, err := http.Get(warehouseURL)
+	if err != nil {
+		log.Printf("Warehouse Credentials check failed, cannot connect to: %s (%+v)\n", warehouseURL, err)
+		return false
+	}
+	_ = resp.Body.Close()
+	if resp.StatusCode == http.StatusUnauthorized {
+		log.Print("Warehouse Credentials check failed, please ensure you have configured the correct values for siteid and authcode\n")
+		return false
+	}
+	if resp.StatusCode >= 400 {
+		log.Printf("Warehouse Credentials check failed, error code getting: %s (%d)\n", warehouseURL, resp.StatusCode)
+		return false
+	}
+	return true
 }
 
 func readData() {
@@ -234,6 +277,7 @@ func readConfiguration() *koanf.Koanf {
 
 	flag.String("siteid", "", "Site Id for data warehouse")
 	flag.String("authcode", "", "Authentication code for data warehouse")
+	flag.Bool("ignorecheck", false, "Ignore the results of the warehouse credential check and start anyway")
 	flag.String("url", "http://data.amsat-uk.org/", "Url for submitting to data warehouse")
 	flag.Int("retryattempts", -1, "Number of warehouse submission retries before moving on to next frame (infinite attempts)")
 	flag.Int("retrywaitseconds", 60, "Time to wait between retry attempts")
@@ -241,7 +285,6 @@ func readConfiguration() *koanf.Koanf {
 	flag.Int("dataport", int(0xFC06), "Port for incomming decoded data (256 bytes chunks)")
 	flag.Int("commandport", int(0xFC07), "Port for incomming commands")
 	flag.String("file", "", "Path of funcubebin file to upload to warehouse (multiple of 256 bytes in length)")
-	flag.String("outdir", "", "Path in which to create funcubebin file")
 	flag.Parse()
 
 	if err := konf.Load(posflag.Provider(flag.CommandLine, ".", konf), nil); err != nil {
