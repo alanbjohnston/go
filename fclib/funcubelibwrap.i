@@ -11,7 +11,7 @@
 %}
 
 %insert(cgo_comment_typedefs) %{
-#cgo LDFLAGS: -l:libfuncube.a -lstdc++ -lpthread -lm -lusb-1.0 -lfftw3f -lsndfile -lportaudio
+#cgo LDFLAGS: -l:libfuncube.a -lstdc++ -lpthread -lm -lusb-1.0 -lfftw3f -lportaudio
 %}
 
 %typemap(gotype) uint32_t, const uint32_t & "uint32"
