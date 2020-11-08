@@ -64,9 +64,18 @@ func OnDataReady() {
 func main() {
 	log.Printf("Using Config:\n%s\n", config.Sprint())
 
-	if config.String("connectaddress") == "" {
-		log.Println("Empty connectaddress, disabled sending")
+	if config.String("connectaddress") == "" && len(config.Strings("connectlocations"))==0 {
+		log.Println("Empty connectaddress and connectlocations, disabled sending")
 		sendDisabled = true
+	}
+
+	connectLocations := config.Strings("connectlocations")
+	// append original connect address/port to location for backward compatibility
+	if config.String("connectaddress") != "" {
+		host := config.String("connectaddress")
+		port := config.String("connectport")
+
+		connectLocations = append(connectLocations, net.JoinHostPort(host, port))
 	}
 
 	ver := fclib.Library_GetVersion()
@@ -133,13 +142,43 @@ func main() {
 
 	log.Println("*** Started decode workers, waiting for packet decodes ***")
 
-	go sendData()
+	var dataChans []chan []byte
+
+	// start one sendData routine per destination host
+	for _, loc := range connectLocations {
+		ch := make(chan []byte, 64)
+		dataChans = append(dataChans, ch)
+		go sendData(ch, loc)
+	}
+
+	go cloneDataChannel(dataChan, dataChans)
 
 	serveStats()
 }
 
-func sendData() {
-	log.Println("Ready to Send...")
+
+func cloneDataChannel(srcChan chan []byte, destChans []chan []byte) {
+	var data []byte
+	for {
+		// take data off the source channel, block until there's something to read
+		fmt.Print("v")
+		data = <-srcChan
+		fmt.Print("^")
+		//send it to all the dest channels (dont block if channel full)
+		for _, dest := range destChans {
+			select {
+			case dest <- data:
+			default:
+				fmt.Print("x")
+				continue
+			}
+			fmt.Print("+")
+		}
+	}
+}
+
+func sendData(srcChan chan []byte, destLoc string) {
+	log.Println("Starting send worker for:", destLoc)
 
 	var err error
 	var conn net.Conn
@@ -155,7 +194,7 @@ func sendData() {
 		// don't get more if we already have unsent
 		if byteCount == 0 {
 			select {
-			case data = <-dataChan:
+			case data = <-srcChan:
 				byteCount = len(data)
 				fmt.Printf("-")
 
@@ -176,10 +215,7 @@ func sendData() {
 
 		// don't connect if already connected
 		if nil == dst {
-			host := config.String("connectaddress")
-			port := config.String("connectport")
-			hostport := net.JoinHostPort(host, port)
-			conn, err = net.DialTimeout("tcp", hostport, time.Second*5)
+			conn, err = net.DialTimeout("tcp", destLoc, time.Second*5)
 			if err != nil {
 				if backoffSecs += 5; backoffSecs > 120 {
 					backoffSecs = 120
@@ -267,15 +303,17 @@ func readConfiguration() *koanf.Koanf {
 	flag.String("audiodevicein", "-1", "Audio in device name or id (-1 use default)")
 	flag.String("audiodeviceout", "-1", "Audio out device name or id (-1 use default)")
 	flag.String("connectaddress", "encodeserver", "Address to connect to for sending decoded data for uploading or encoding, empty string disables data send")
-	flag.Int("connectport", int(0xFC02), "Port to connect to for sending decoded data (256 bytes chunks)")
+	flag.Int("connectport", int(0xFC02), "Port to connect to for sending decoded data (256 bytes chunks)")	
 	flag.String("bindaddress", "0.0.0.0", "Address to bind for TCP listen sockets")
-	flag.Int("commandport", int(0xFC01), "Port for incomming commands")
+	flag.StringSlice("connectlocations", []string{}, "Address:Port combination to connect to for sending decoded data, multiple locations can be specified in the format [\"host1:port1\", \"host2:port2\"] the data will be copied to all")
+	flag.Int("commandport", int(0xFC01), "Port for incoming commands")
 	flag.String("outdir", "", "Path in which to create funcubebin files")
 	flag.Parse()
 
 	if err := konf.Load(posflag.Provider(flag.CommandLine, ".", konf), nil); err != nil {
 		log.Fatalf("error loading config: %v", err)
 	}
+
 
 	return konf
 }
