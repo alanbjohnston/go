@@ -124,7 +124,7 @@ func readData() {
 		if err == io.EOF {
 			fmt.Printf("^")
 			readerQueue.Remove(readerQueue.Front())
-			src.Close()
+			_ = src.Close()
 			err = nil
 		}
 		if err != nil {
@@ -135,8 +135,12 @@ func readData() {
 			continue
 		}
 
-		fmt.Printf("<")
-		dataChan <- raw
+		fmt.Printf("<")		
+		select {
+		case dataChan <- raw:
+		default:
+			fmt.Println(" Discarded send channel full.")
+		}
 	}
 }
 
@@ -150,21 +154,33 @@ func sendData() {
 		retryAttempts := config.Int("retryattempts")
 		retryWaitSeconds := config.Int("retrywaitseconds")
 
-		if frame != nil && frame.CanRetry() {
-			// wait before retrying same frame
-			log.Printf("Retry waiting: %d  attempts remaining: %d of %d\n", retryWaitSeconds, frame.RemainingRetry(), retryAttempts)
-			time.Sleep(time.Duration(retryWaitSeconds) * time.Second)
-		} else {
-			// get next frame
+		// not nil so must have been tried already, decrement retries and check it
+		if frame != nil {
+			frame.DecrementRetry()
+			if frame.CanRetry() {
+				// wait before retrying frame
+				log.Printf("Retry waiting: %d  attempts remaining: %d of %d, backlog: %d\n", retryWaitSeconds, frame.RemainingRetry(), retryAttempts, len(dataChan))
+				time.Sleep(time.Duration(retryWaitSeconds) * time.Second)
+			} else {
+				// discard frame
+				frame = nil
+				fmt.Printf("x")
+			}
+		}
+				
+		// if we haven't got a frame, try and get one
+		if frame == nil {			
 			select {
 			case frameData := <-dataChan:
 				frame, err = NewFrame(frameData, retryAttempts)
 				if err != nil {
+					frame = nil // if NewFrame returns an error, ensure frame will be nil
 					log.Printf("Failed to create frame: (%+v)\n", err)
 					continue
 				}
 			default:
-				time.Sleep(time.Millisecond * 50)
+				fmt.Printf("*")
+				time.Sleep(time.Millisecond * 500)
 				continue
 			}
 		}
@@ -245,7 +261,7 @@ func commandListen() {
 }
 
 func handleConnection(c net.Conn) {
-	log.Printf("Connection from: %v", c)
+	log.Printf("Connection from: %s", c.RemoteAddr().String())
 
 	tc, err := fcio.NewTimedConn(c, time.Second)
 	if err != nil {
@@ -267,7 +283,7 @@ func handleCommandConnection(c net.Conn) {
 func readConfiguration() *koanf.Koanf {
 	var konf = koanf.New(".")
 
-	konf.Load(env.Provider("WH_", ".", func(s string) string {
+	_ = konf.Load(env.Provider("WH_", ".", func(s string) string {
 		return strings.Replace(strings.ToLower(
 			strings.TrimPrefix(s, "WH_")), "_", ".", -1)
 	}), nil)

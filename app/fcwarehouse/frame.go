@@ -53,8 +53,8 @@ func (f Frame) RemainingRetry() int {
 	return f.retryCount
 }
 
-func (f Frame) DecrementRetry() {
+func (f *Frame) DecrementRetry() {
 	if f.retryCount > 0 {
-		f.retryCount -= 1
+		f.retryCount--
 	}
 }
