@@ -55,6 +55,7 @@ func main() {
 }
 
 func readData() {
+    log.Printf("readData\n")	
     loopFile := config.Bool("loopfile")
     for {
         // if there's nothing to read from wait then try again
@@ -95,6 +96,7 @@ func readData() {
 }
 
 func encodeData() {
+    log.Printf("encodeData\n")	
     init := fclib.Encode_Initialize()
     log.Printf("Initialised %d\n", init)
     
