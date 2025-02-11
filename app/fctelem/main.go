@@ -228,7 +228,7 @@ func sendData(srcChan chan []byte, destLoc string) {
 					backoffSecs = 120
 				}
 				log.Printf("\nFailed to connect %v\nRetry in %d seconds", err, backoffSecs)
-				time.Sleep(time.Second * time.Duration(backoffSecs))
+//				time.Sleep(time.Second * time.Duration(backoffSecs))
 				continue
 			}
 
