@@ -105,11 +105,13 @@ func main() {
 		log.Fatalf("Failed to set FUNcube Dongle frequency:%dHz, result:%d", freq, result)
 	}
 
+	var offset float32
 	var freqLow float32
 	var freqHigh float32
-	
-	freqLow = float32(freq) - 100000.0
-	freqHigh = float32(freq) + 100000.0
+
+	offset = float32(config.Float64("autotuneoffset"))
+	freqLow = float32(freq) - offset
+	freqHigh = float32(freq) + offset
 	fclib.Decode_SetAutoTuneFrequencyRange(freqLow, freqHigh)
 	log.Println("Set auto tune frequency range low: %dHz, high: %dHz", freqLow, freqHigh)	
 
@@ -317,6 +319,7 @@ func readConfiguration() *koanf.Koanf {
 	flag.StringSlice("connectlocations", []string{}, "Address:Port combination to connect to for sending decoded data, multiple locations can be specified in the format [\"host1:port1\", \"host2:port2\"] the data will be copied to all")
 	flag.Int("commandport", int(0xFC01), "Port for incoming commands")
 	flag.String("outdir", "", "Path in which to create funcubebin files")
+	flag.Float64("autotuneoffset", 100000.0, "Frequency offset high/low for auto tune")
 	flag.Parse()
 
 	if err := konf.Load(posflag.Provider(flag.CommandLine, ".", konf), nil); err != nil {
