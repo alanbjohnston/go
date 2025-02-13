@@ -108,8 +108,8 @@ func main() {
 	var freqLow float32
 	var freqHigh float32
 	
-	freqLow := float32(freq) - 100000.0
-	freqHigh := float32(freq) + 100000.0
+	freqLow = float32(freq) - 100000.0
+	freqHigh = float32(freq) + 100000.0
 	if result := fclib.Decode_SetAutoTuneFrequencyRange(freqLow, freqHigh); result != 1 {
 		log.Fatalf("Failed to set auto tune frequency range low: %dHz, high: %dHz, result:%d", freqLow, freqHigh, result)
 	}
