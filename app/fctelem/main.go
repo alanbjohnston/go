@@ -110,11 +110,13 @@ func main() {
 	var freqHigh float32
 
 	offset = float32(config.Float64("autotuneoffset"))
-	freqLow = float32(freq) - offset
-	freqHigh = float32(freq) + offset
-	fclib.Decode_SetAutoTuneFrequencyRange(freqLow, freqHigh)
-	log.Println("Set auto tune frequency range low: %dHz, high: %dHz", freqLow, freqHigh)	
 
+	if (offset != -1) {
+		freqLow = float32(freq) - offset
+		freqHigh = float32(freq) + offset
+		fclib.Decode_SetAutoTuneFrequencyRange(freqLow, freqHigh)
+		log.Println("Set auto tune frequency range low: %dHz, high: %dHz", freqLow, freqHigh)	
+	}
 	time.Sleep(time.Millisecond * 50)
 	log.Printf("Set FUNcube Dongle frequency:%dHz\n", freq)
 
