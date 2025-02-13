@@ -105,8 +105,11 @@ func main() {
 		log.Fatalf("Failed to set FUNcube Dongle frequency:%dHz, result:%d", freq, result)
 	}
 
-	freqLow := freq - 100000
-	freqHigh := freq + 100000
+	var freqLow float32
+	var freqHigh float32
+	
+	freqLow := freq - 100000.0
+	freqHigh := freq + 100000.0
 	if result := fclib.Decode_SetAutoTuneFrequencyRange(freqLow, freqHigh); result != 1 {
 		log.Fatalf("Failed to set auto tune frequency range low: %dHz, high: %dHz, result:%d", freqLow, freqHigh, result)
 	}
